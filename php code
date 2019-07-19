@@ -1,0 +1,61 @@
+public function details($patient_id=NULL)
+    {
+        $patient_id = intval(nix_decode($patient_id, NIX_COUNT_3));
+        
+        if($patient_id > 0) 
+        {
+            $this->nixsession->set(NIX_FROM_PAGE_URL, 'details/'.  nix_encode($patient_id, NIX_COUNT_3));
+            $this->nixsession->set(NIX_SESS_PATIENT_ID, $patient_id);
+            
+            /* Get the patient's details and convert each result to array */
+            $data['agency_patient'] = $this->agency_patient->get_agency_patient($patient_id);
+            $data['pt_detail']      = $this->pt_detail->get_patient_detail($patient_id);
+            
+            /* Get the patient's contact info and contact persons info and convert each result to array */
+            $data['cont']   = $this->cont->get_contact_info($patient_id, NIX_CONT_PATIENT);
+            $data['cont1']  = $this->cont->get_contact_info($patient_id, NIX_CONT_PATIENT_CONTACT_PERSON1);
+            $data['cont2']  = $this->cont->get_contact_info($patient_id, NIX_CONT_PATIENT_CONTACT_PERSON2);
+            $data['cont3']  = $this->cont->get_contact_info($patient_id, NIX_CONT_PATIENT_SPA);
+            
+            $data['patient_referrals'] = $this->pt_referral->get_all_referrals($patient_id); 
+            
+            if($data['patient_referrals'])
+            {
+                // Get all patient episodes
+                $data['episodes'] = $this->episodes->get_episodes_by_patient($patient_id);
+                
+                if($data['episodes'])
+                {
+                    // Get the first episode creator and modifier since it is the first information to display
+                    $creator                = (array) $this->user->get_info($data['episodes'][0]->CREATED_BY);
+                    $modifier               = (array) $this->user->get_info($data['episodes'][0]->MODIFIED_BY);
+
+                    $data['created_by']     = $creator['USERNAME'];
+                    $data['modified_by']    = $modifier['USERNAME'];
+                    
+                    // Get the first referral information
+                    $data['first_episode_referral_info']   = $this->pt_referral->get_info_referral($data['episodes'][0]->AGENCY_PATIENT_REFERRALS_ID); 
+
+                    $episode_id = $data['episodes'][0]->ID;
+
+                    //get episode and other details if the patient has episode(s) based on referral id
+                    $data['first_episode_info']             = $this->episodes->get_info($episode_id);
+                    $data['first_episode_physicians']       = $this->episode_physician->get_episode_physician($episode_id);
+                    $data['first_episode_fieldstaffs']      = $this->episode_fieldstaff->get_episode_fieldstaff($episode_id);
+                }
+                
+            /* Since no referral, no episode */
+            }else{
+                $data['episodes']     = NULL;
+            }
+            
+            if(! $data['agency_patient']) { redirect(base_url('patients/search')); }
+            
+        } else { show_404(); }
+        
+        $data['inp'] = $this->inpatient_facilty->get_all_info();
+        $data['modules'] = $this->menu;
+        $data['page_title'] = 'Patient Details';
+        $this->load->view('patients/details', $data);
+        
+    }
