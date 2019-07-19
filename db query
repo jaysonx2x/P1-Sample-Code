@@ -1,0 +1,17 @@
+public function get_patient_name($key = NULL, $agency_id = NULL)
+{
+    if ($key == NULL)
+    {
+        return FALSE;
+    }
+
+    ($agency_id != NULL) ? $this->db->where('AGENCIES_ID = ' . $agency_id) : '';
+
+    $this->db->select('ap.*, cont.ADDRESS1, cont.CITY, cont.STATE, cont.ZIPCODE, cont.PHONE_WORK, cont.PHONE_CELL, cont.PHONE_FAX')
+            ->from($this->_table .          ' ap')
+            ->like('ap.LASTNAME', $key,     'after')
+            ->order_by('ap.LASTNAME')
+            ->join('CONTACT_INFOS cont',    'ap.ID = cont.OWNER_ID AND cont.CONTACT_INFOS_TYPE = ' . NIX_CONT_PATIENT);
+
+    return $this->db->get()->result();
+}
