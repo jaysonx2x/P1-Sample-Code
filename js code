@@ -1,0 +1,46 @@
+function autocomplete_physician_name() {
+    $("#PHYSICIAN_NAME").autocomplete({
+        minlength: 2,
+        source: function(request, response) {
+            $.ajax({
+                type: 'POST',
+                url: NIX_SITE_URL + 'patients/check_physician_name',
+                dataType: 'json',
+                data: {
+                    key: request.term
+                }
+            })
+            .done(function(msg) {
+                if (msg.status) {
+                    var mi = ' ';
+                    response($.map(msg.phys_name, function(el, index) {
+                        return {
+                            id:         el.ID,
+                            pname1:     fnFormatName(el.FIRSTNAME, el.LASTNAME, el.MIDDLE_INITIAL, 'fml') + ', ' + el.TITLE,
+                            specialty:  el.SPECIALTY,
+                            phone:      fnAddPhoneFormat(el.PHONE_WORK),
+                            addr1:      fnFormatAddress(el.ADDRESS1, el.CITY, el.STATE, el.ZIPCODE)
+                        };
+                    }));
+                }else fnAlertError('#notify-patient', 'Cannot find physician.');
+            });
+        },
+        select: function(event, ui) {
+            $("#PHYSICIAN_NAME").val(ui.item.pname1);
+            $("#HIDDEN_PHYSICIAN_NAME").val(ui.item.pname1);
+            $("#PHYSICIAN_PHONE").val(ui.item.phone);
+            $("#AGENCY_PHYSICIANS_ID").val(ui.item.id);
+            return false;
+        }
+    })
+    .data("ui-autocomplete")._renderItem = function(ul, item) {
+        return $("<li />")
+            .data("item.autocomplete", item)
+            .append('<a><strong><span class="font_size_13pt">' + item.pname1 + '</span><br/>'
+                    + '<span class="font_size_10pt">' + item.specialty + '</span><br/>'
+                    + '<span class="font_size_08pt"><i>' + item.addr1 + '</i></span><br/>'
+                    + '<span class="font_size_08pt"><i>' + item.phone + '</i></span><br/>')
+            .append('</strong></a>')
+            .appendTo(ul);
+    };
+}
